@@ -343,6 +343,7 @@
 <nav>
     <button class="active" onclick="showSection('cram')">Cram Sheet</button>
     <button onclick="showSection('roulette')">Recitation Roulette</button>
+    <button onclick="showSection('blitz')">⚡ Blitz Mode</button>
     <button onclick="showSection('whoami')">Who Am I?</button>
     <button onclick="showSection('school')">School of Thought</button>
 </nav>
@@ -350,7 +351,28 @@
 <main>
     <!-- SECTION 1: CRAM SHEET -->
     <div id="cram" class="section active">
-        <!-- Content injected by JS -->
+        <button class="btn btn-outline" onclick="togglePanicMode()" style="width: 100%; margin-bottom: 1rem; border-style: dashed;">⚠ PANIC MODE (Expand All)</button>
+        <div id="cram-container">
+            <!-- Content injected by JS -->
+        </div>
+    </div>
+
+    <!-- SECTION 5: BLITZ MODE -->
+    <div id="blitz" class="section">
+        <div class="game-container">
+            <div style="display: flex; justify-content: space-between; margin-bottom: 1rem; color: var(--text-secondary);">
+                <span>Score: <b id="blitz-score" style="color: var(--secondary-color);">0</b></span>
+                <span>Streak: <b id="blitz-streak" style="color: var(--primary-color);">0</b></span>
+            </div>
+            <div class="progress-bar" style="width: 100%; height: 4px; background: #333; margin-bottom: 1.5rem; border-radius: 2px;">
+                <div id="blitz-timer" style="width: 100%; height: 100%; background: var(--secondary-color); transition: width 1s linear;"></div>
+            </div>
+            <h3 id="blitz-question" style="margin-bottom: 1.5rem; min-height: 3rem;">Ready?</h3>
+            <div id="blitz-options" class="options-grid">
+                <button class="option-btn" onclick="startBlitz()">START BLITZ</button>
+            </div>
+            <p id="blitz-feedback" class="feedback"></p>
+        </div>
     </div>
 
     <!-- SECTION 2: RECITATION ROULETTE -->
@@ -548,7 +570,7 @@
 
     // 2. Cram Sheet Population
     function initCramSheet() {
-        const container = document.getElementById('cram');
+        const container = document.getElementById('cram-container');
         works.forEach((work, index) => {
             let detailsHtml = '';
             for (const [key, value] of Object.entries(work.details)) {
@@ -594,14 +616,111 @@
         const content = header.nextElementSibling;
         const isOpen = content.classList.contains('open');
         
-        // Close all others (optional, strictly one open at a time)
-        document.querySelectorAll('.accordion-content').forEach(c => c.classList.remove('open'));
-        document.querySelectorAll('.accordion-header span:last-child').forEach(s => s.textContent = '▼');
+        // Only close others if NOT in panic mode
+        if (!document.getElementById('cram').classList.contains('panic-active')) {
+             document.querySelectorAll('.accordion-content').forEach(c => c.classList.remove('open'));
+             document.querySelectorAll('.accordion-header span:last-child').forEach(s => s.textContent = '▼');
+        }
 
         if (!isOpen) {
             content.classList.add('open');
             header.querySelector('span:last-child').textContent = '▲';
+        } else {
+             content.classList.remove('open'); // Allow closing
+             header.querySelector('span:last-child').textContent = '▼';
         }
+    }
+
+    function togglePanicMode() {
+        const section = document.getElementById('cram');
+        const isPanic = section.classList.toggle('panic-active');
+        const contents = document.querySelectorAll('.accordion-content');
+        const icons = document.querySelectorAll('.accordion-header span:last-child');
+        
+        contents.forEach(c => isPanic ? c.classList.add('open') : c.classList.remove('open'));
+        icons.forEach(i => i.textContent = isPanic ? '▲' : '▼');
+    }
+
+    // ... (Roulette logic remains same) ...
+
+    // --- BLITZ MODE LOGIC ---
+    let blitzScore = 0;
+    let blitzStreak = 0;
+    let blitzQuestion = null;
+
+    function startBlitz() {
+        blitzScore = 0;
+        blitzStreak = 0;
+        updateBlitzStats();
+        loadBlitzQuestion();
+    }
+
+    function updateBlitzStats() {
+        document.getElementById('blitz-score').innerText = blitzScore;
+        document.getElementById('blitz-streak').innerText = blitzStreak;
+    }
+
+    function loadBlitzQuestion() {
+        // Pick random question
+        const qIndex = Math.floor(Math.random() * questions.length);
+        blitzQuestion = questions[qIndex];
+        
+        document.getElementById('blitz-question').innerText = blitzQuestion.q;
+        document.getElementById('blitz-feedback').innerText = "";
+
+        // Generate Options
+        let options = [blitzQuestion.a];
+        while (options.length < 4) {
+            const randomWrong = questions[Math.floor(Math.random() * questions.length)].a;
+            if (!options.includes(randomWrong)) {
+                options.push(randomWrong);
+            }
+        }
+        shuffleArray(options);
+
+        const container = document.getElementById('blitz-options');
+        container.innerHTML = '';
+        
+        options.forEach(opt => {
+            const btn = document.createElement('button');
+            btn.className = 'option-btn';
+            btn.innerText = opt;
+            btn.onclick = () => checkBlitz(btn, opt);
+            container.appendChild(btn);
+        });
+    }
+
+    function checkBlitz(btn, answer) {
+        const feedback = document.getElementById('blitz-feedback');
+        const allBtns = document.querySelectorAll('#blitz-options .option-btn');
+        allBtns.forEach(b => b.disabled = true); // Lock buttons
+
+        if (answer === blitzQuestion.a) {
+            btn.style.backgroundColor = "rgba(3, 218, 198, 0.2)";
+            btn.style.borderColor = "var(--secondary-color)";
+            blitzScore += 10 + (blitzStreak * 2); // Combo bonus
+            blitzStreak++;
+            feedback.innerText = "Correct! (+Next in 1s)";
+            feedback.className = "feedback correct";
+            setTimeout(loadBlitzQuestion, 1000);
+        } else {
+            btn.style.backgroundColor = "rgba(207, 102, 121, 0.2)";
+            btn.style.borderColor = "var(--error-color)";
+            
+            // Highlight correct one
+            allBtns.forEach(b => {
+                if (b.innerText === blitzQuestion.a) {
+                    b.style.backgroundColor = "rgba(3, 218, 198, 0.2)";
+                    b.style.borderColor = "var(--secondary-color)";
+                }
+            });
+
+            blitzStreak = 0;
+            feedback.innerText = "Missed! Streak Reset.";
+            feedback.className = "feedback wrong";
+            setTimeout(loadBlitzQuestion, 2000); // Longer pause to see error
+        }
+        updateBlitzStats();
     }
 
     // 3. Recitation Roulette
