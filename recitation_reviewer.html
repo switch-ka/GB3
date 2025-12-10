@@ -1,0 +1,752 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Recitation Reviewer App</title>
+    <style>
+        :root {
+            --bg-color: #121212;
+            --surface-color: #1e1e1e;
+            --primary-color: #bb86fc;
+            --secondary-color: #03dac6;
+            --error-color: #cf6679;
+            --text-primary: #ffffff;
+            --text-secondary: #b0b0b0;
+            --border-radius: 12px;
+            --font-main: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            --shadow: 0 4px 6px rgba(0, 0, 0, 0.5);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-primary);
+            font-family: var(--font-main);
+            line-height: 1.6;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+
+        /* Header */
+        header {
+            background-color: var(--surface-color);
+            padding: 1rem;
+            text-align: center;
+            box-shadow: var(--shadow);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        h1 {
+            font-size: 1.5rem;
+            color: var(--primary-color);
+            margin-bottom: 0.5rem;
+        }
+
+        /* Navigation */
+        nav {
+            display: flex;
+            overflow-x: auto;
+            gap: 1rem;
+            padding: 0.5rem;
+            justify-content: center;
+            background-color: #2c2c2c;
+            border-bottom: 1px solid #333;
+        }
+
+        nav button {
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            padding: 0.5rem 1rem;
+            cursor: pointer;
+            font-weight: bold;
+            white-space: nowrap;
+            border-bottom: 3px solid transparent;
+            transition: all 0.3s ease;
+        }
+
+        nav button.active {
+            color: var(--secondary-color);
+            border-bottom-color: var(--secondary-color);
+        }
+
+        /* Main Container */
+        main {
+            flex: 1;
+            padding: 1rem;
+            max-width: 800px;
+            margin: 0 auto;
+            width: 100%;
+        }
+
+        .section {
+            display: none;
+            animation: fadeIn 0.4s ease;
+        }
+
+        .section.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Cram Sheet (Accordion) */
+        .accordion-item {
+            background-color: var(--surface-color);
+            margin-bottom: 1rem;
+            border-radius: var(--border-radius);
+            overflow: hidden;
+            box-shadow: var(--shadow);
+        }
+
+        .accordion-header {
+            padding: 1rem;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background-color: #252525;
+            transition: background 0.2s;
+        }
+
+        .accordion-header:hover {
+            background-color: #2d2d2d;
+        }
+
+        .accordion-title {
+            font-weight: bold;
+            color: var(--primary-color);
+        }
+
+        .accordion-content {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease-out;
+            background-color: var(--surface-color);
+        }
+
+        .accordion-content.open {
+            max-height: 1000px; /* Arbitrary large number for transition */
+        }
+
+        .content-padding {
+            padding: 1rem;
+            border-top: 1px solid #333;
+        }
+
+        .info-row {
+            margin-bottom: 0.8rem;
+        }
+
+        .info-label {
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+            display: block;
+            margin-bottom: 0.2rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .trap-box {
+            background-color: rgba(207, 102, 121, 0.1);
+            border-left: 4px solid var(--error-color);
+            padding: 0.5rem;
+            margin-top: 0.5rem;
+        }
+
+        /* Recitation Roulette (Flashcards) */
+        .flashcard-container {
+            perspective: 1000px;
+            height: 300px;
+            margin: 2rem 0;
+            cursor: pointer;
+        }
+
+        .flashcard {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            text-align: center;
+            transition: transform 0.6s;
+            transform-style: preserve-3d;
+            border-radius: var(--border-radius);
+            box-shadow: var(--shadow);
+        }
+
+        .flashcard.flipped {
+            transform: rotateY(180deg);
+        }
+
+        .card-face {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            backface-visibility: hidden;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem;
+            border-radius: var(--border-radius);
+            background-color: var(--surface-color);
+            border: 1px solid #333;
+        }
+
+        .card-front {
+            background: linear-gradient(135deg, #1e1e1e 0%, #252525 100%);
+        }
+
+        .card-back {
+            background-color: #2a2a2a;
+            transform: rotateY(180deg);
+            color: var(--secondary-color);
+        }
+
+        .card-controls {
+            display: flex;
+            justify-content: center;
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+
+        .btn {
+            background-color: var(--primary-color);
+            color: #000;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 50px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: transform 0.1s;
+        }
+
+        .btn:active {
+            transform: scale(0.95);
+        }
+
+        .btn-outline {
+            background: transparent;
+            border: 2px solid var(--primary-color);
+            color: var(--primary-color);
+        }
+
+        /* Who Am I? Game */
+        .game-container {
+            background-color: var(--surface-color);
+            padding: 2rem;
+            border-radius: var(--border-radius);
+            text-align: center;
+            box-shadow: var(--shadow);
+        }
+
+        .game-question {
+            font-size: 1.2rem;
+            margin-bottom: 1.5rem;
+            font-style: italic;
+        }
+
+        .options-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 0.8rem;
+        }
+
+        @media(min-width: 600px) {
+            .options-grid {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+
+        .option-btn {
+            background-color: #2c2c2c;
+            color: var(--text-primary);
+            border: 1px solid #444;
+            padding: 1rem;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .option-btn:hover {
+            background-color: #383838;
+        }
+
+        .feedback {
+            margin-top: 1rem;
+            font-weight: bold;
+            min-height: 1.5rem;
+        }
+
+        .correct { color: var(--secondary-color); }
+        .wrong { color: var(--error-color); }
+
+        /* School of Thought Matcher */
+        .matcher-container {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .match-row {
+            background-color: var(--surface-color);
+            padding: 1rem;
+            border-radius: var(--border-radius);
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            border-left: 4px solid var(--primary-color);
+        }
+
+        .match-row select {
+            background-color: #121212;
+            color: white;
+            padding: 0.5rem;
+            border: 1px solid #444;
+            border-radius: 4px;
+            width: 100%;
+        }
+
+        .check-btn {
+            width: 100%;
+            margin-top: 1rem;
+        }
+
+        /* Footer */
+        footer {
+            text-align: center;
+            padding: 2rem;
+            color: var(--text-secondary);
+            font-size: 0.8rem;
+            margin-top: auto;
+        }
+
+    </style>
+</head>
+<body>
+
+<header>
+    <h1>Lit Reviewer</h1>
+</header>
+
+<nav>
+    <button class="active" onclick="showSection('cram')">Cram Sheet</button>
+    <button onclick="showSection('roulette')">Recitation Roulette</button>
+    <button onclick="showSection('whoami')">Who Am I?</button>
+    <button onclick="showSection('school')">School of Thought</button>
+</nav>
+
+<main>
+    <!-- SECTION 1: CRAM SHEET -->
+    <div id="cram" class="section active">
+        <!-- Content injected by JS -->
+    </div>
+
+    <!-- SECTION 2: RECITATION ROULETTE -->
+    <div id="roulette" class="section">
+        <div class="flashcard-container" onclick="flipCard()">
+            <div class="flashcard" id="flashcard">
+                <div class="card-face card-front">
+                    <h3 id="card-question">Tap to Start</h3>
+                    <p style="font-size: 0.8rem; color: #888; margin-top: 1rem;">(Tap card to flip)</p>
+                </div>
+                <div class="card-face card-back">
+                    <p id="card-answer">Answer will appear here</p>
+                </div>
+            </div>
+        </div>
+        <div class="card-controls">
+            <button class="btn btn-outline" onclick="prevCard()">Previous</button>
+            <button class="btn" onclick="nextCard()">Next Question</button>
+        </div>
+        <p style="text-align: center; margin-top: 1rem; color: #666;" id="card-counter">0 / 0</p>
+    </div>
+
+    <!-- SECTION 3: WHO AM I? -->
+    <div id="whoami" class="section">
+        <div class="game-container">
+            <h2>Who Am I?</h2>
+            <p>Identify the Character or Author based on the detail.</p>
+            <hr style="border: 0; border-bottom: 1px solid #333; margin: 1rem 0;">
+            <p id="wa-clue" class="game-question">Loading...</p>
+            <div id="wa-options" class="options-grid">
+                <!-- Options injected JS -->
+            </div>
+            <p id="wa-feedback" class="feedback"></p>
+            <button class="btn" onclick="initWhoAmI()" style="margin-top: 1rem;">Next Clue</button>
+        </div>
+    </div>
+
+    <!-- SECTION 4: SCHOOL OF THOUGHT -->
+    <div id="school" class="section">
+        <h2>Match the Work to the Movement</h2>
+        <p style="color: #bbb; margin-bottom: 1rem;">Select the correct literary movement for each title.</p>
+        <div id="matcher-list" class="matcher-container">
+            <!-- Match items injected by JS -->
+        </div>
+        <button class="btn check-btn" onclick="checkMatches()">Check Answers</button>
+        <p id="match-result" class="feedback" style="text-align: center;"></p>
+    </div>
+</main>
+
+<footer>
+    <p>Recitation Reviewer App &bull; Great Books Class</p>
+</footer>
+
+<script>
+    // --- DATA SOURCE ---
+    const works = [
+        {
+            title: "The Road Not Taken",
+            author: "Robert Frost",
+            awards: "Author won 4 Pulitzers",
+            school: "Modernism (w/ Romantic influence)",
+            details: {
+                publication: "Written 1915; Published 1916 in 'Mountain Interval'",
+                inspiration: "Edward Thomas (indecisive friend)",
+                structure: "4 Stanzas, 5 lines each. Rhyme Scheme: ABAAB",
+                imagery: "Yellow wood (Autumn/decay), Undergrowth (uncertainty)",
+                trap: "The poem is NOT about non-conformity. The roads were 'really about the same'. It's about rationalizing choices after making them."
+            }
+        },
+        {
+            title: "Life of Pi",
+            author: "Yann Martel",
+            awards: "Man Booker Prize (2002)",
+            school: "Magical Realism / Existentialism",
+            details: {
+                background: "Author born in Salamanca, Spain (1963). Worked as dishwasher/security guard.",
+                plot: "Pi stranded for 227 days. Family leaves Pondicherry on Japanese freighter.",
+                animals: "Zebra (Sailor), Orangutan (Mother), Hyena (Cook), Tiger (Pi/Richard Parker).",
+                themes: "Faith (Hinduism, Christianity, Islam), Coexistence, Storytelling as Truth.",
+                trap: "In the human story, Pi is the Tiger. The Hyena (Cook) kills the Zebra and Orangutan."
+            }
+        },
+        {
+            title: "The Old Man and the Sea",
+            author: "Ernest Hemingway",
+            awards: "Pulitzer (1953) & Nobel (1954)",
+            school: "Naturalism / Existentialism",
+            details: {
+                timeline: "Written 1951 (Cuba). Published 1952 (Life Magazine).",
+                inspiration: "Gregorio Fuentes",
+                plot: "Santiago (Salao/unlucky) fights giant Marlin for 3 days. Sharks eat it.",
+                symbolism: "Marlin (Ideal opponent), Sharks (Critics/Nature), Lions (Lost youth).",
+                trap: "Style is 'Iceberg Theory'. Philosophy: 'A man can be destroyed but not defeated'."
+            }
+        },
+        {
+            title: "Ilustrado",
+            author: "Miguel Syjuco",
+            awards: "Man Asian Lit Prize (2008) / Palanca Grand Prize",
+            school: "Postmodernism / Metafiction",
+            details: {
+                author_info: "Born 1976. PhD from Univ. of Adelaide.",
+                plot: "Crispin Salvador (mentor) found dead in Hudson River. Miguel searches for 'The Bridges Ablaze'.",
+                setting: "Spans 150 years of Philippine history.",
+                themes: "Colonial mentality, corruption, exile, diaspora.",
+                trap: "It is a metafiction (story about writing) and satire."
+            }
+        },
+        {
+            title: "The God Stealer",
+            author: "F. Sionil José",
+            awards: "Palanca First Prize (1959)",
+            school: "Realism / Social Critique",
+            details: {
+                context: "Part of the 'Rosales Saga'. National Artist (2001).",
+                characters: "Philip Latak (Ip-pig) - Ifugao native. Sam Christie - American boss.",
+                plot: "Visit Rice Terraces. Philip steals Grandfather's Bulul (idol) for Sam.",
+                outcome: "Grandfather dies. Philip stays in mountains carving new god, having lost his soul.",
+                trap: "Theme is 'Stealing one's own soul' through cultural alienation."
+            }
+        }
+    ];
+
+    const questions = [
+        // Frost
+        { q: "What year was 'The Road Not Taken' published?", a: "1916 (in 'Mountain Interval')" },
+        { q: "Who inspired 'The Road Not Taken'?", a: "Edward Thomas (an indecisive friend)" },
+        { q: "What is the rhyme scheme of 'The Road Not Taken'?", a: "ABAAB" },
+        { q: "What does the 'Yellow wood' symbolize?", a: "Autumn or decay" },
+        { q: "True or False: Frost's poem celebrates non-conformity.", a: "False. The roads were 'really about the same'." },
+        { q: "What literary movement does Frost's poem belong to?", a: "Modernism (with Romantic influences)" },
+        // Martel
+        { q: "Where was Yann Martel born?", a: "Salamanca, Spain (1963)" },
+        { q: "What jobs did Martel have before writing?", a: "Dishwasher and security guard" },
+        { q: "What is the Tiger's name in Life of Pi?", a: "Richard Parker" },
+        { q: "Who represents the Hyena in the human story?", a: "The Cook" },
+        { q: "Who represents the Orangutan in the human story?", a: "Pi's Mother" },
+        { q: "How many days was Pi stranded?", a: "227 days" },
+        // Hemingway
+        { q: "How many days did Santiago go without fish?", a: "84 days" },
+        { q: "Who was the real-life inspiration for Santiago?", a: "Gregorio Fuentes" },
+        { q: "What do the lions in Santiago's dreams represent?", a: "Lost youth and strength (Africa)" },
+        { q: "What is Hemingway's writing style called?", a: "The Iceberg Theory" },
+        { q: "Complete the quote: 'A man can be destroyed but...'", a: "...not defeated.'" },
+        { q: "What awards did 'The Old Man and the Sea' win?", a: "Pulitzer (1953) and Nobel (1954)" },
+        // Syjuco
+        { q: "Who is the mentor character found dead in the Hudson?", a: "Crispin Salvador" },
+        { q: "What is the title of the missing manuscript in Ilustrado?", a: "The Bridges Ablaze" },
+        { q: "What is the primary literary style of Ilustrado?", a: "Postmodernism / Metafiction" },
+        { q: "How many years of history does Ilustrado span?", a: "150 years" },
+        // Sionil Jose
+        { q: "What prize did 'The God Stealer' win in 1959?", a: "Palanca First Prize" },
+        { q: "What specific object does Philip steal?", a: "His Grandfather's Bulul (idol)" },
+        { q: "Who is Sam Christie?", a: "Philip's American boss and friend" },
+        { q: "What is Philip Latak's native name?", a: "Ip-pig" },
+        { q: "What happens to Philip at the end?", a: "He stays in the mountains to carve a new god." }
+    ];
+
+    const whoAmIData = [
+        { clue: "I was found floating dead in the Hudson River.", answer: "Crispin Salvador" },
+        { clue: "I dreamed of lions on the beaches of Africa.", answer: "Santiago" },
+        { clue: "I stole my grandfather's idol to please my American friend.", answer: "Philip Latak (Ip-pig)" },
+        { clue: "I am a Bengal Tiger named Richard Parker.", answer: "Pi Patel (valid interpretation)" }, 
+        { clue: "I worked as a dishwasher and security guard before winning the Booker Prize.", answer: "Yann Martel" },
+        { clue: "I collected souvenirs and wanted a generic 'God' from the Ifugao.", answer: "Sam Christie" },
+        { clue: "I wrote a poem inspired by my indecisive friend, Edward Thomas.", answer: "Robert Frost" },
+        { clue: "I am the Cook who killed the Sailor and the Mother.", answer: "The Hyena" },
+        { clue: "I went 84 days without catching a fish.", answer: "Santiago" },
+        { clue: "I searched for the missing manuscript 'The Bridges Ablaze'.", answer: "Miguel (Protagonist)" }
+    ];
+
+    // --- LOGIC ---
+
+    // 1. Navigation
+    function showSection(id) {
+        document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+        document.getElementById(id).classList.add('active');
+        document.querySelectorAll('nav button').forEach(b => b.classList.remove('active'));
+        document.querySelector(`nav button[onclick="showSection('${id}')"]`).classList.add('active');
+    }
+
+    // 2. Cram Sheet Population
+    function initCramSheet() {
+        const container = document.getElementById('cram');
+        works.forEach((work, index) => {
+            let detailsHtml = '';
+            for (const [key, value] of Object.entries(work.details)) {
+                if (key !== 'trap') {
+                    detailsHtml += `
+                        <div class="info-row">
+                            <span class="info-label">${key.replace('_', ' ')}</span>
+                            <span>${value}</span>
+                        </div>`;
+                }
+            }
+
+            const html = `
+                <div class="accordion-item">
+                    <div class="accordion-header" onclick="toggleAccordion(this)">
+                        <span class="accordion-title">${work.title}</span>
+                        <span style="color: #666;">▼</span>
+                    </div>
+                    <div class="accordion-content">
+                        <div class="content-padding">
+                            <div class="info-row">
+                                <span class="info-label">Author</span>
+                                <b style="color: white;">${work.author}</b>
+                            </div>
+                            <div class="info-row">
+                                <span class="info-label">Awards</span>
+                                <span>${work.awards}</span>
+                            </div>
+                            ${detailsHtml}
+                            <div class="trap-box">
+                                <span class="info-label" style="color: var(--error-color);">PROFESSOR'S TRAP</span>
+                                <span>${work.details.trap}</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            container.innerHTML += html;
+        });
+    }
+
+    function toggleAccordion(header) {
+        const content = header.nextElementSibling;
+        const isOpen = content.classList.contains('open');
+        
+        // Close all others (optional, strictly one open at a time)
+        document.querySelectorAll('.accordion-content').forEach(c => c.classList.remove('open'));
+        document.querySelectorAll('.accordion-header span:last-child').forEach(s => s.textContent = '▼');
+
+        if (!isOpen) {
+            content.classList.add('open');
+            header.querySelector('span:last-child').textContent = '▲';
+        }
+    }
+
+    // 3. Recitation Roulette
+    let currentCardIndex = 0;
+    // Shuffle questions on load
+    function shuffleArray(array) {
+        for (let i = array.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [array[i], array[j]] = [array[j], array[i]];
+        }
+    }
+
+    function loadCard() {
+        const q = questions[currentCardIndex];
+        const card = document.getElementById('flashcard');
+        
+        // Reset flip state
+        card.classList.remove('flipped');
+        
+        // Update text after a brief timeout to allow flip animation reset if needed, 
+        // but here we just update immediately for simplicity or wait for transition.
+        setTimeout(() => {
+            document.getElementById('card-question').innerText = q.q;
+            document.getElementById('card-answer').innerText = q.a;
+            document.getElementById('card-counter').innerText = `${currentCardIndex + 1} / ${questions.length}`;
+        }, 200);
+    }
+
+    function flipCard() {
+        document.getElementById('flashcard').classList.toggle('flipped');
+    }
+
+    function nextCard() {
+        if (currentCardIndex < questions.length - 1) {
+            currentCardIndex++;
+        } else {
+            currentCardIndex = 0; // Loop back
+        }
+        loadCard();
+    }
+
+    function prevCard() {
+        if (currentCardIndex > 0) {
+            currentCardIndex--;
+        } else {
+            currentCardIndex = questions.length - 1;
+        }
+        loadCard();
+    }
+
+    // 4. Who Am I Game
+    let currentWhoAmI = null;
+
+    function initWhoAmI() {
+        const randomIndex = Math.floor(Math.random() * whoAmIData.length);
+        currentWhoAmI = whoAmIData[randomIndex];
+        
+        document.getElementById('wa-clue').innerText = `"${currentWhoAmI.clue}"`;
+        document.getElementById('wa-feedback').innerText = "";
+        
+        // Generate options: Correct answer + 3 random wrong ones
+        let options = [currentWhoAmI.answer];
+        while (options.length < 4) {
+            const randomWrong = whoAmIData[Math.floor(Math.random() * whoAmIData.length)].answer;
+            if (!options.includes(randomWrong)) {
+                options.push(randomWrong);
+            }
+        }
+        shuffleArray(options);
+
+        const optionsContainer = document.getElementById('wa-options');
+        optionsContainer.innerHTML = '';
+        
+        options.forEach(opt => {
+            const btn = document.createElement('button');
+            btn.className = 'option-btn';
+            btn.innerText = opt;
+            btn.onclick = () => checkWhoAmI(opt);
+            optionsContainer.appendChild(btn);
+        });
+    }
+
+    function checkWhoAmI(selected) {
+        const feedback = document.getElementById('wa-feedback');
+        if (selected === currentWhoAmI.answer) {
+            feedback.innerText = "Correct! Well done.";
+            feedback.className = "feedback correct";
+        } else {
+            feedback.innerText = `Incorrect. It was ${currentWhoAmI.answer}.`;
+            feedback.className = "feedback wrong";
+        }
+        // Disable buttons
+        document.querySelectorAll('.option-btn').forEach(b => b.disabled = true);
+    }
+
+    // 5. School of Thought Matcher
+    function initMatcher() {
+        const container = document.getElementById('matcher-list');
+        container.innerHTML = '';
+
+        // Extract Schools and Shuffle
+        const schools = works.map(w => w.school);
+        const uniqueSchools = [...new Set(schools)]; // Just in case, though they are distinct in data
+        
+        works.forEach((work, index) => {
+            const row = document.createElement('div');
+            row.className = 'match-row';
+            
+            // Create options HTML
+            let optionsHtml = '<option value="" disabled selected>Select Movement...</option>';
+            // Shuffle schools for display to prevent pattern guessing
+            const shuffledSchools = [...uniqueSchools]; 
+            shuffleArray(shuffledSchools);
+            
+            shuffledSchools.forEach(s => {
+                optionsHtml += `<option value="${s}">${s}</option>`;
+            });
+
+            row.innerHTML = `
+                <label style="font-weight:bold;">${work.title}</label>
+                <select id="match-${index}" data-correct="${work.school}">
+                    ${optionsHtml}
+                </select>
+            `;
+            container.appendChild(row);
+        });
+    }
+
+    function checkMatches() {
+        let score = 0;
+        let total = works.length;
+        
+        works.forEach((work, index) => {
+            const select = document.getElementById(`match-${index}`);
+            const row = select.parentElement;
+            
+            if (select.value === select.dataset.correct) {
+                score++;
+                row.style.borderLeftColor = "var(--secondary-color)";
+            } else {
+                row.style.borderLeftColor = "var(--error-color)";
+            }
+        });
+
+        const result = document.getElementById('match-result');
+        result.innerText = `You scored ${score} / ${total}`;
+        result.className = score === total ? "feedback correct" : "feedback wrong";
+    }
+
+    // Initialize Everything
+    window.onload = function() {
+        initCramSheet();
+        shuffleArray(questions);
+        loadCard();
+        initWhoAmI();
+        initMatcher();
+    };
+
+</script>
+
+</body>
+</html>
