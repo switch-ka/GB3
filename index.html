@@ -647,6 +647,7 @@
     let blitzScore = 0;
     let blitzStreak = 0;
     let blitzQuestion = null;
+    let blitzTimerId = null;
 
     function startBlitz() {
         blitzScore = 0;
@@ -661,6 +662,14 @@
     }
 
     function loadBlitzQuestion() {
+        // Clear previous timer
+        if (blitzTimerId) clearTimeout(blitzTimerId);
+        
+        // Reset Timer UI
+        const timerBar = document.getElementById('blitz-timer');
+        timerBar.style.transition = 'none';
+        timerBar.style.width = '100%';
+        
         // Pick random question
         const qIndex = Math.floor(Math.random() * questions.length);
         blitzQuestion = questions[qIndex];
@@ -688,9 +697,35 @@
             btn.onclick = () => checkBlitz(btn, opt);
             container.appendChild(btn);
         });
+
+        // Start Timer (10 seconds)
+        setTimeout(() => {
+            timerBar.style.transition = 'width 10s linear';
+            timerBar.style.width = '0%';
+        }, 50);
+
+        blitzTimerId = setTimeout(() => {
+            handleTimeUp();
+        }, 10000);
+    }
+
+    function handleTimeUp() {
+        const feedback = document.getElementById('blitz-feedback');
+        const allBtns = document.querySelectorAll('#blitz-options .option-btn');
+        allBtns.forEach(b => b.disabled = true);
+        
+        blitzStreak = 0;
+        feedback.innerText = "Time's Up!";
+        feedback.className = "feedback wrong";
+        updateBlitzStats();
+        setTimeout(loadBlitzQuestion, 1500);
     }
 
     function checkBlitz(btn, answer) {
+        // Stop Timer
+        if (blitzTimerId) clearTimeout(blitzTimerId);
+        document.getElementById('blitz-timer').style.width = document.getElementById('blitz-timer').offsetWidth + 'px'; // Freeze bar
+
         const feedback = document.getElementById('blitz-feedback');
         const allBtns = document.querySelectorAll('#blitz-options .option-btn');
         allBtns.forEach(b => b.disabled = true); // Lock buttons
