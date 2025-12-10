@@ -698,15 +698,15 @@
             container.appendChild(btn);
         });
 
-        // Start Timer (10 seconds)
+        // Start Timer (5 seconds)
         setTimeout(() => {
-            timerBar.style.transition = 'width 10s linear';
+            timerBar.style.transition = 'width 5s linear';
             timerBar.style.width = '0%';
         }, 50);
 
         blitzTimerId = setTimeout(() => {
             handleTimeUp();
-        }, 10000);
+        }, 5000);
     }
 
     function handleTimeUp() {
